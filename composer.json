@@ -1,6 +1,6 @@
 {
   "name": "elphizu/pressagent",
-  "description": "AI agent discovery and interoperability for WordPress.",
+  "description": "Public AI-agent discovery for WordPress: manifest, llms.txt, and public Abilities. No MCP server, auth, or tables.",
   "type": "wordpress-plugin",
   "license": "GPL-2.0-or-later",
   "homepage": "https://github.com/elphizu/pressagent",

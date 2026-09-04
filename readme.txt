@@ -1,5 +1,5 @@
 === PressAgent ===
-Contributors: elphizu
+Contributors: suryakantupadhyay
 Tags: ai, agents, discovery, llms, rest-api
 Requires at least: 6.9
 Tested up to: 7.1
@@ -8,11 +8,11 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Expose standard, secure discovery information for AI agents using native WordPress APIs.
+Publish public discovery for AI agents: manifest, llms.txt, and public Abilities, with no custom auth or tables.
 
 == Description ==
 
-PressAgent publishes a small, transport-neutral discovery surface for WordPress sites:
+PressAgent publishes public discovery files for WordPress sites:
 
 * `/.well-known/wordpress-agent.json`
 * `/llms.txt`
@@ -39,7 +39,7 @@ No permalink save is required after activation. When a server cannot route the c
 
 PressAgent does not introduce an authentication scheme.
 
-* The public manifest, LLMS document, PressAgent REST discovery, and projected public ability metadata may be accessed anonymously.
+* You can read the public manifest, LLMS document, PressAgent REST discovery, and public ability metadata without logging in.
 * The WordPress Abilities API collection requires an authenticated user with the `read` capability, even when an individual ability has `meta.public` set to `true`.
 * External authenticated clients should use WordPress Application Passwords over HTTPS.
 * Cookie-authenticated WordPress clients continue to use the normal REST nonce behavior.
@@ -61,7 +61,7 @@ The version uses `major.minor`. Additive optional fields increment the minor ver
 
 Synthetic ability entries are supported through `pressagent_manifest_abilities`. They must use the same label, description, and category shape as registered abilities and are treated as explicitly public. Their category should also be supplied through `pressagent_manifest_categories`.
 
-Manifest and llms.txt output is cached as site-public, user-independent data. The cache lifetime is configurable from Settings > PressAgent. Site identity and plugin setting changes invalidate both artifacts. Integrations whose filtered discovery changes at runtime must call `do_action( 'pressagent_flush_cache' )`.
+Manifest and llms.txt output is cached as site-public, user-independent data. The cache lifetime is configurable from Settings > PressAgent. Site identity and plugin setting changes invalidate both artifacts. Extensions whose filtered discovery changes at runtime must call `do_action( 'pressagent_flush_cache' )`.
 
 PressAgent relies on WordPress REST CORS handling and does not emit custom CORS headers.
 
@@ -69,7 +69,7 @@ PressAgent relies on WordPress REST CORS handling and does not emit custom CORS 
 
 MCP transport belongs to a separate adapter plugin. When the official `WP\MCP\Core\McpAdapter` runtime is available and its default server is enabled, PressAgent automatically advertises `/wp-json/mcp/mcp-adapter-default-server`.
 
-PressAgent abilities explicitly set `meta.mcp.public=true` and `meta.mcp.type=tool`, making the intent clear to the official adapter. Its layered default server exposes them through the adapter's discover, inspect, and execute gateway tools.
+PressAgent abilities set `meta.mcp.public=true` and `meta.mcp.type=tool` so the official adapter lists them as tools. The adapter's default server exposes them through its discover, inspect, and execute gateway tools.
 
 A custom adapter or custom-server deployment can override the endpoint as follows:
 
@@ -90,7 +90,7 @@ MCP exposure of individual abilities remains the adapter's projection decision. 
 
 Filters the normalized endpoint map before it is included in the manifest or returned by the `pressagent/get-discovery` ability.
 
-The value is an associative array of endpoint keys to absolute HTTP(S) URLs. Integrations may add, replace, or remove entries. If multiple callbacks write the same key, the callback running last wins according to normal WordPress filter priority and registration order.
+The value is an associative array of endpoint keys to absolute HTTP(S) URLs. Extensions may add, replace, or remove entries. If multiple callbacks write the same key, the callback running last wins according to normal WordPress filter priority and registration order.
 
 Built-in keys are listed below. The `rest` and `pressagent` keys are required for complete PressAgent discovery; Site Health reports their removal as a critical issue.
 
@@ -105,7 +105,7 @@ Filters the complete public manifest after PressAgent builds it. This is a trust
 
 = pressagent_authentication =
 
-Filters authentication metadata keyed by the same endpoint names used by `pressagent_discovery`. Integrations that add an authenticated endpoint should add its requirements through this filter. The second filter argument contains the normalized discovery map.
+Filters authentication metadata keyed by the same endpoint names used by `pressagent_discovery`. Extensions that add an authenticated endpoint should add its requirements through this filter. The second filter argument contains the normalized discovery map.
 
 PressAgent supplies WordPress cookie and Application Password metadata only for the official same-site MCP Adapter endpoint. Custom MCP endpoints receive no assumed authentication metadata; their integration must provide the correct requirements through this filter.
 

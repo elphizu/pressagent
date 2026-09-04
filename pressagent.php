@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       PressAgent
  * Plugin URI:        https://github.com/elphizu/pressagent
- * Description:       AI agent discovery and interoperability for WordPress.
+ * Description:       Public AI-agent discovery for WordPress: manifest, llms.txt, and public Abilities. No MCP server, auth, or tables.
  * Version:           0.1.0
  * Requires at least: 6.9
  * Requires PHP:      7.4
