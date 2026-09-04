@@ -1,0 +1,59 @@
+<?xml version="1.0"?>
+
+<ruleset name="PressAgent">
+	<description>WordPress Coding Standards for PressAgent.</description>
+
+	<!-- Files to scan. -->
+	<file>.</file>
+
+	<exclude-pattern>/vendor/</exclude-pattern>
+	<exclude-pattern>/node_modules/</exclude-pattern>
+
+	<!-- PHPCS output/configuration. -->
+	<arg value="sp"/>
+	<arg name="basepath" value="./"/>
+	<arg name="colors"/>
+	<arg name="extensions" value="php"/>
+	<arg name="parallel" value="8"/>
+
+	<!--
+		PHP compatibility.
+
+		WordPress 7.0 requires PHP 7.4+, so PressAgent targets
+		PHP 7.4 and all newer PHP versions.
+	-->
+	<config name="testVersion" value="7.4-"/>
+
+	<rule ref="PHPCompatibilityWP"/>
+
+	<!-- WordPress Coding Standards. -->
+	<config name="minimum_supported_wp_version" value="6.9"/>
+
+	<rule ref="WordPress"/>
+
+	<!-- Require PressAgent-specific prefixes for global symbols/hooks. -->
+	<rule ref="WordPress.NamingConventions.PrefixAllGlobals">
+		<properties>
+			<property name="prefixes" type="array">
+				<element value="pressagent"/>
+				<element value="PRESSAGENT"/>
+				<element value="PressAgent"/>
+			</property>
+		</properties>
+	</rule>
+
+	<!-- Require the PressAgent text domain. -->
+	<rule ref="WordPress.WP.I18n">
+		<properties>
+			<property name="text_domain" type="array">
+				<element value="pressagent"/>
+			</property>
+		</properties>
+	</rule>
+
+	<rule ref="WordPress.WhiteSpace.ControlStructureSpacing">
+		<properties>
+			<property name="blank_line_check" value="true"/>
+		</properties>
+	</rule>
+</ruleset>
