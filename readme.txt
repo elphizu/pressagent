@@ -8,143 +8,136 @@ Stable tag: 0.1.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Publish public discovery for AI agents: manifest, llms.txt, and public Abilities, with no custom auth or tables.
+Publish public discovery information for AI agents, including a manifest, llms.txt, and WordPress abilities.
 
 == Description ==
 
-PressAgent publishes public discovery files for WordPress sites:
+PressAgent makes WordPress sites easier for AI agents and other tools to discover.
+
+It provides:
 
 * `/.well-known/wordpress-agent.json`
 * `/llms.txt`
 * `/wp-json/pressagent/v1/manifest`
-* Public abilities registered through the WordPress Abilities API
-* Optional integration endpoints, including MCP endpoints contributed by adapter plugins
+* Public abilities registered with the WordPress Abilities API
+* Optional discovery of MCP endpoints provided by other plugins
 
-PressAgent does not provide an MCP server. It automatically detects the official WordPress MCP Adapter and advertises its enabled default HTTP server. Other adapters and custom-server deployments can contribute or replace an endpoint through the `pressagent_discovery` filter.
+PressAgent does not provide an MCP server, custom authentication, database tables, or AI SDK integrations.
 
-PressAgent deliberately does not include custom authentication, custom database tables, or AI SDK dependencies. Anonymous requests receive public discovery metadata only. Authenticated external clients reuse WordPress Application Passwords over HTTPS.
+When the official WordPress MCP Adapter is active, PressAgent can automatically advertise its default HTTP endpoint. Other integrations can provide their own endpoint using the `pressagent_discovery` filter.
 
-The generated `llms.txt` follows the llmstxt.org v2 structure: an H1 title, an optional blockquote summary, and Markdown file lists grouped under H2 headings.
+Authenticated clients use normal WordPress authentication, including Application Passwords over HTTPS.
 
 == Installation ==
 
 1. Upload the `pressagent` directory to `/wp-content/plugins/`.
 2. Activate PressAgent through the Plugins screen.
-3. Open Settings > PressAgent to inspect discovery and authentication diagnostics.
-4. Open Tools > Site Health to review PressAgent health checks and debug information.
+3. Go to Settings > PressAgent to review discovery settings and diagnostics.
+4. Use Tools > Site Health for additional PressAgent checks.
 
-No permalink save is required after activation. When a server cannot route the canonical `/llms.txt` path through WordPress, `/?pressagent_llms=1` is the query-string fallback.
+No permalink refresh is required.
 
-== Authentication and authorization ==
+If `/llms.txt` cannot be routed through WordPress, `/?pressagent_llms=1` is available as a fallback.
 
-PressAgent does not introduce an authentication scheme.
+== Authentication ==
 
-* You can read the public manifest, LLMS document, PressAgent REST discovery, and public ability metadata without logging in.
-* The WordPress Abilities API collection requires an authenticated user with the `read` capability, even when an individual ability has `meta.public` set to `true`.
-* External authenticated clients should use WordPress Application Passwords over HTTPS.
-* Cookie-authenticated WordPress clients continue to use the normal REST nonce behavior.
-* Authentication identifies a user; it does not authorize an operation.
-* Every sensitive, private, or write ability must provide an explicit `permission_callback` that checks an appropriate WordPress capability with `current_user_can()`.
-* A nonce is not an authorization check.
+PressAgent does not add a new authentication system.
 
-PressAgent includes an ability in anonymous discovery only when its `meta.public` value is strictly `true`. Categories are limited to categories referenced by those public abilities.
+Public discovery information can be accessed without authentication.
 
-The manifest includes an `authentication` object keyed by discovery endpoint. Its `abilities` entry records the required `read` capability and the WordPress authentication methods available on the site. Application Passwords are advertised only when WordPress reports them as available.
+Authenticated external clients should use WordPress Application Passwords over HTTPS. Cookie-authenticated requests continue to use normal WordPress REST API nonce handling.
 
-== Manifest contract ==
+Abilities that expose private data or perform sensitive operations must use an appropriate `permission_callback` and WordPress capability checks.
 
-The bundled `docs/manifest-schema.json` file is the canonical JSON Schema. The REST route exposes the same contract through `OPTIONS /wp-json/pressagent/v1/manifest`.
-
-The six required properties are `version`, `site`, `discovery`, `authentication`, `abilities`, and `categories`. The `pressagent_manifest` filter may modify their values using the documented types, but it cannot remove them or change their types. Additional top-level properties are allowed.
-
-The version uses `major.minor`. Additive optional fields increment the minor version. Removing or redefining required fields increments the major version.
-
-Synthetic ability entries are supported through `pressagent_manifest_abilities`. They must use the same label, description, and category shape as registered abilities and are treated as explicitly public. Their category should also be supplied through `pressagent_manifest_categories`.
-
-Manifest and llms.txt output is cached as site-public, user-independent data. The cache lifetime is configurable from Settings > PressAgent. Site identity and plugin setting changes invalidate both artifacts. Extensions whose filtered discovery changes at runtime must call `do_action( 'pressagent_flush_cache' )`.
-
-PressAgent relies on WordPress REST CORS handling and does not emit custom CORS headers.
+Only abilities explicitly marked with `meta.public` set to `true` are included in public discovery.
 
 == MCP integration ==
 
-MCP transport belongs to a separate adapter plugin. When the official `WP\MCP\Core\McpAdapter` runtime is available and its default server is enabled, PressAgent automatically advertises `/wp-json/mcp/mcp-adapter-default-server`.
+PressAgent does not provide an MCP server.
 
-PressAgent abilities set `meta.mcp.public=true` and `meta.mcp.type=tool` so the official adapter lists them as tools. The adapter's default server exposes them through its discover, inspect, and execute gateway tools.
+When the official WordPress MCP Adapter is available and its default server is enabled, PressAgent advertises its HTTP endpoint automatically.
 
-A custom adapter or custom-server deployment can override the endpoint as follows:
+Other MCP integrations can provide an endpoint using the `pressagent_discovery` filter:
 
 `add_filter( 'pressagent_discovery', function ( $discovery ) {`
 `    $discovery['mcp'] = 'https://example.com/wp-json/mcp/v1';`
 `    return $discovery;`
 `} );`
 
-The endpoint must be an absolute HTTP or HTTPS URL. PressAgent omits invalid, relative, and non-HTTP(S) values. If no valid `mcp` entry exists, PressAgent does not advertise MCP.
+Only absolute HTTP or HTTPS URLs are accepted.
 
-When a valid MCP endpoint is advertised, PressAgent also includes it in the generated `llms.txt` summary.
-
-MCP exposure of individual abilities remains the adapter's projection decision. Ability permission callbacks remain authoritative regardless of transport.
+Ability permissions continue to be enforced by WordPress regardless of how an ability is exposed.
 
 == Extension API ==
 
+PressAgent provides filters for plugins that need to extend its discovery output.
+
 = pressagent_discovery =
 
-Filters the normalized endpoint map before it is included in the manifest or returned by the `pressagent/get-discovery` ability.
+Filters the discovery endpoint map.
 
-The value is an associative array of endpoint keys to absolute HTTP(S) URLs. Extensions may add, replace, or remove entries. If multiple callbacks write the same key, the callback running last wins according to normal WordPress filter priority and registration order.
+Built-in endpoints may include:
 
-Built-in keys are listed below. The `rest` and `pressagent` keys are required for complete PressAgent discovery; Site Health reports their removal as a critical issue.
-
-* `rest`: WordPress REST API root.
-* `pressagent`: PressAgent manifest REST endpoint.
-* `abilities`: WordPress Abilities API collection endpoint, when available.
-* `mcp`: Optional; contributed by an MCP adapter.
+* `rest` - WordPress REST API
+* `pressagent` - PressAgent manifest
+* `abilities` - WordPress Abilities API
+* `mcp` - MCP endpoint, when available
 
 = pressagent_manifest =
 
-Filters the complete public manifest after PressAgent builds it. This is a trusted-code extension point. Extensions are responsible for preserving the documented public-exposure boundary.
+Filters the generated public manifest.
 
 = pressagent_authentication =
 
-Filters authentication metadata keyed by the same endpoint names used by `pressagent_discovery`. Extensions that add an authenticated endpoint should add its requirements through this filter. The second filter argument contains the normalized discovery map.
-
-PressAgent supplies WordPress cookie and Application Password metadata only for the official same-site MCP Adapter endpoint. Custom MCP endpoints receive no assumed authentication metadata; their integration must provide the correct requirements through this filter.
+Filters authentication information associated with discovery endpoints.
 
 = pressagent_llms =
 
-Filters the complete multi-line `/llms.txt` document before it is served.
+Filters the generated `/llms.txt` document.
 
 = pressagent_llms_enabled =
 
-Filters whether PressAgent registers and serves its `/llms.txt` endpoint. Return `false` to disable ownership of the WordPress route.
+Controls whether PressAgent serves `/llms.txt`.
 
 = pressagent_manifest_abilities =
 
-Filters the public ability metadata projection after PressAgent removes abilities that are not explicitly public. This is a trusted-code extension point and must not be used to expose private ability metadata.
+Filters abilities included in the public manifest.
 
 = pressagent_manifest_categories =
 
-Filters category metadata after PressAgent limits the collection to categories referenced by public abilities.
+Filters ability categories included in the public manifest.
 
 == Frequently Asked Questions ==
 
-= Does PressAgent send site content to an AI provider? =
+= Does PressAgent send content to an AI provider? =
 
-No. PressAgent publishes discovery metadata locally and has no AI SDK or model-provider dependency.
+No. PressAgent only publishes discovery information from the WordPress site. It does not connect to an AI or model provider.
 
 = Does PressAgent create database tables? =
 
-No. The current plugin has no custom persistence layer.
+No.
 
 = Does PressAgent provide an MCP server? =
 
-No. Install the official WordPress MCP Adapter or another compatible adapter. PressAgent detects the official default server automatically and supports custom endpoints through `pressagent_discovery`.
+No. An MCP adapter, such as the official WordPress MCP Adapter, must provide the server.
 
-= How should an external agent authenticate? =
+= How should external agents authenticate? =
 
-Use WordPress Application Passwords over HTTPS. The requested REST endpoint or ability must still authorize the authenticated user with an appropriate capability check.
+Use WordPress Application Passwords over HTTPS when authentication is required.
+
+Normal WordPress capability checks still determine what an authenticated user is allowed to do.
+
+= What is llms.txt? =
+
+PressAgent generates an `/llms.txt` file containing useful public links and information about the site in a simple Markdown format.
 
 == Changelog ==
 
 = 0.1.0 =
 
-* Initial agent manifest, llms.txt, REST, Abilities API, diagnostics, and extension API implementation.
+* Initial release.
+* Added agent manifest and `/llms.txt` discovery.
+* Added REST and WordPress Abilities API integration.
+* Added MCP Adapter discovery.
+* Added settings and Site Health diagnostics.
+* Added extension filters.
