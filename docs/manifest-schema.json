@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "PressAgent manifest",
+  "type": "object",
+  "required": [
+    "version",
+    "site",
+    "discovery",
+    "authentication",
+    "abilities",
+    "categories"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+    "site": {
+      "type": "object",
+      "required": ["name", "url", "description", "wordpress"],
+      "additionalProperties": true
+    },
+    "discovery": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "format": "uri" }
+    },
+    "authentication": {
+      "type": "object",
+      "additionalProperties": { "type": "object" }
+    },
+    "abilities": {
+      "type": "object",
+      "additionalProperties": { "type": "object" }
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": { "type": "object" }
+    }
+  }
+}
